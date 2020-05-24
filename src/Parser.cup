@@ -1,0 +1,152 @@
+import java_cup.runtime.*;
+
+parser code {:
+
+  public boolean syntaxErrors = true;
+
+  public void syntax_error (Symbol current_token) {
+    report_error (
+      "Syntax error at line " + (current_token.left+1) + ", column "
+      + current_token.right + ". ", null );
+    syntaxErrors = true;
+  }
+
+:};
+
+terminal BADCHAR, BOOL_TYPE, INT_TYPE, RAT_TYPE, FLOAT_TYPE, CHAR_TYPE, ANY_TYPE, SEC_TYPE;
+terminal LOOP, POOL, IF, THEN, ELSE, FI, BREAK, FDEF, TDEF, ALIAS, READ, PRINT, RETURN, MAIN;
+terminal NOT, AND, OR, PLUS, MINUS, MULT, DIV, POWER, LESSTHAN, LTOREQ, GTOREQ, EQUAL, ASSIGN, IN, CONCAT, LPAREN, RPAREN, LEFTBRAKET, RIGHTBRAKET, LEFTBRACE, RIGHTBRACE, COLON, SEMICOL, GREATERTHAN, COMMA, DOT;
+terminal NULL, TRUE, FALSE, STRING, CHAR;
+
+terminal SECTYPE;
+terminal INTEGER;
+terminal RAT;
+terminal FLOAT;
+terminal IDENTIFIER;
+
+nonterminal program, main, statements, statement, loop_statements, loop_statement, type_id, seq_type_id, declarations, declaration, declaration_list, declaration_list_item, expressions, expression, slice_expression, function, ids;
+
+precedence nonassoc ELSE;
+precedence left AND, OR;
+precedence left PLUS, MINUS, MULT, DIV, POWER;
+precedence left EQUAL, NOT, LESSTHAN, LTOREQ, GTOREQ;
+precedence left LPAREN, RPAREN, LEFTBRAKET, RIGHTBRAKET;
+precedence left IN;
+precedence right CONCAT, NOT;
+
+start with program;
+
+program       ::= main:m declarations:d
+          | declarations:d1 main:m declarations:d2
+          | declarations:d main:m
+          | main:m
+          ;
+
+main        ::= MAIN LEFTBRACE function:f RIGHTBRACE SEMICOL;
+
+function      ::= declarations:d statements:s
+          | statements:s
+          ;
+
+declarations    ::= declaration:d //Declare in mine
+          | declarations:d1 declaration:d2
+          ;
+
+declaration     ::= IDENTIFIER:i COLON type_id:t SEMICOL
+          | IDENTIFIER:i COLON type_id:t ASSIGN expressions:e SEMICOL
+          | ALIAS type_id:t IDENTIFIER:i SEMICOL
+          | TDEF IDENTIFIER:i LEFTBRACE declaration_list:dt RIGHTBRACE SEMICOL
+          | TDEF IDENTIFIER:i LEFTBRACE RIGHTBRACE SEMICOL
+          | FDEF IDENTIFIER:i LPAREN declaration_list:df RPAREN LEFTBRACE function:f RIGHTBRACE SEMICOL
+          | FDEF IDENTIFIER:i LPAREN declaration_list:df RPAREN LEFTBRACE function:f RIGHTBRACE COLON type_id:t SEMICOL
+          | FDEF IDENTIFIER:i LPAREN RPAREN LEFTBRACE function:f RIGHTBRACE SEMICOL
+          | FDEF IDENTIFIER:i LPAREN RPAREN LEFTBRACE function:f RIGHTBRACE COLON type_id:t SEMICOL
+          | FDEF IDENTIFIER:i LPAREN declaration_list:df RPAREN LEFTBRACE RIGHTBRACE SEMICOL
+          | FDEF IDENTIFIER:i LPAREN RPAREN LEFTBRACE RIGHTBRACE SEMICOL
+          ;
+
+type_id       ::= CHAR_TYPE SEC_TYPE
+                    | INT_TYPE SEC_TYPE
+                    | RAT_TYPE SEC_TYPE
+                    | FLOAT_TYPE SEC_TYPE
+                    | BOOL_TYPE SEC_TYPE
+                    |   IDENTIFIER:i
+                    | SECTYPE LESSTHAN seq_type_id:t GREATERTHAN
+                    ;
+
+seq_type_id   ::= CHAR_TYPE SEC_TYPE
+                    | INT_TYPE SEC_TYPE
+                    | RAT_TYPE SEC_TYPE
+                    | FLOAT_TYPE SEC_TYPE
+                    | BOOL_TYPE SEC_TYPE
+                    |   IDENTIFIER:i
+                    | SECTYPE LESSTHAN seq_type_id:t GREATERTHAN
+                    | ANY_TYPE SEC_TYPE
+                    ;
+
+declaration_list  ::= declaration_list_item:d
+          | declaration_list:d1 COMMA declaration_list_item:d2
+          ;
+
+declaration_list_item   ::= IDENTIFIER:i COLON type_id:t;
+
+statements      ::= statement:s
+          | statements:s1 statement:s2
+          ;
+
+statement       ::= ids:i ASSIGN expressions:es SEMICOL
+          | READ ids:i SEMICOL
+          | PRINT expression:e SEMICOL
+           | IDENTIFIER:fi LPAREN expressions:es RPAREN SEMICOL
+          | IDENTIFIER:fi LPAREN RPAREN SEMICOL
+          | IF LPAREN expression:e RPAREN THEN statements:ss FI
+          | IF LPAREN expression:e RPAREN THEN statements:ss1 ELSE statements:ss2 FI
+          | RETURN expression:e SEMICOL
+          | RETURN SEMICOL
+          ;
+
+expressions     ::= expression:e
+          | expressions:e1 COMMA expression:e2
+          ;
+
+expression ::= NULL
+          | TRUE
+          | FALSE
+          | INTEGER:i
+          | RAT:r
+          | FLOAT:f
+          | CHAR:c
+          | STRING:s
+          | ids:is
+          | BADCHAR
+          | ids:seqi LEFTBRAKET expression:e RIGHTBRAKET
+          | ids:seqi LEFTBRAKET slice_expression RIGHTBRAKET
+          | ids:seqi1 LEFTBRAKET expression:e RIGHTBRAKET DOT ids:seqi2
+          | ids:seqi1 LEFTBRAKET slice_expression RIGHTBRAKET DOT ids:seqi2
+          | IDENTIFIER:fi LPAREN expressions:es RPAREN
+          | IDENTIFIER:fi LPAREN RPAREN
+          | IDENTIFIER:fi LPAREN expressions:es RPAREN DOT ids:seqi
+          | IDENTIFIER:fi LPAREN RPAREN DOT ids:seqi
+          | LPAREN expression:e RPAREN
+          | NOT expression:e
+          | MINUS expression:e
+          | expression:e1 AND expression:e2
+          | expression:e1 OR expression:e2
+          | expression:e1 PLUS expression:e2
+          | expression:e1 MINUS expression:e2
+          | expression:e1 MULT expression:e2
+          | expression:e1 DIV expression:e2
+          | expression:e1 POWER expression:e2
+          | expression:e1 LESSTHAN expression:e2
+          | expression:e1 LTOREQ expression:e2
+          | expression:e1 EQUAL expression:e2
+          | expression:e1 NOT expression:e2
+          | expression:e1 IN expression:e2
+          | expression:e1 CONCAT expression:e2
+          | LEFTBRAKET expressions:es RIGHTBRAKET
+          | LEFTBRAKET RIGHTBRAKET
+          ;
+
+ids         ::= IDENTIFIER:i
+          | ids:is DOT IDENTIFIER:i
+          ;
